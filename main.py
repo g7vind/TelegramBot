@@ -79,13 +79,24 @@ timetable = {
 
 # Command Handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
+    user = update.message.from_user
+    user_id = user.id
+    first_name = user.first_name
+    last_name = user.last_name or ''
+    username = user.username or ''
     
     # Check if the user is already in the database
     if not users_collection.find_one({"user_id": user_id}):
-        users_collection.insert_one({"user_id": user_id})
-    
-    await update.message.reply_text("Welcome to the Assignment Bot! Use /help to see available commands.")
+        users_collection.insert_one({
+            "user_id": user_id,
+            "first_name": first_name,
+            "last_name": last_name,
+            "username": username
+        })
+    # Create a personalized welcome message
+    full_name = f"{first_name} {last_name}".strip()
+    welcome_message = f"Welcome to the Assignment Bot, {full_name}! Use /help to see available commands."
+    await update.message.reply_text(welcome_message)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
