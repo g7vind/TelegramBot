@@ -3,8 +3,11 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 import pymongo
 from datetime import datetime, timezone
 from bson import ObjectId
+from keepalive import keep_alive
 from dotenv import load_dotenv
 import os
+
+keep_alive()
 
 # Load environment variables from .env file
 load_dotenv()
