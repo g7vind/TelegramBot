@@ -77,15 +77,13 @@ timetable = {
     ]
 }
 
-# Command Handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
     user_id = user.id
     first_name = user.first_name
     last_name = user.last_name or ''
     username = user.username or ''
-    
-    # Check if the user is already in the database
+
     if not users_collection.find_one({"user_id": user_id}):
         users_collection.insert_one({
             "user_id": user_id,
@@ -108,10 +106,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def assignments(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_info = f"User ID: {user.id}, Username: {user.username}, Name: {user.full_name}"
+    print(f"Assignment request from: {user_info}")
     assignments = assignment_collection.find().sort('timestamp', -1)
     
     if assignment_collection.count_documents({}) > 0:
-        # Create an inline keyboard for each assignment
         keyboard = [
             [InlineKeyboardButton(assignment['title'], callback_data=str(assignment['_id']))]
             for assignment in assignments
@@ -124,24 +124,24 @@ async def assignments(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_assignment_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
-    # Retrieve the assignment using the ID stored in callback_data
+    user = query.from_user
+    user_info = f"User ID: {user.id}, Username: {user.username}, Name: {user.full_name}"
     assignment_id = query.data
     assignment = assignment_collection.find_one({"_id": ObjectId(assignment_id)})
-
     if assignment:
-        # Use the file_id to get and send the file
         file_id = assignment['file_url']
-        await context.bot.send_document(chat_id=query.message.chat_id, document=file_id)
+        file_title = assignment['title']
+        sent_file = await context.bot.send_document(chat_id=query.message.chat_id, document=file_id)
+        print(f"File sent: '{file_title}' to {user_info}")
     else:
         await query.message.reply_text("Sorry, the assignment could not be found.")
+        print(f"Failed to send file to {user_info} - Assignment not found (ID: {assignment_id})")
 
 async def timetable_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
-        day = context.args[0].capitalize()  # Get the day from the command argument and capitalize it
+        day = context.args[0].capitalize() 
     else:
-        day = datetime.now().strftime('%A')  # Default to today's day if no argument is provided
-    
+        day = datetime.now().strftime('%A')  
     day_timetable = timetable.get(day, [])
     if day_timetable:
         timetable_text = f"{day}'s timetable:\n" + "\n".join(day_timetable)
