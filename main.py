@@ -11,16 +11,15 @@ from keepalive import keep_alive
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env file
+
 load_dotenv()
 
-# Set up logging
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-logging.getLogger("httpx").setLevel(logging.WARNING)  # Suppress httpx logs at INFO level
-logging.getLogger("telegram").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING) 
 logger = logging.getLogger(__name__)
 
 # Configuration
@@ -28,16 +27,16 @@ Token = os.getenv("TELEGRAM_BOT_TOKEN")
 MongoDB = os.getenv("MONGODB_URI")
 ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(",")))
 
-# Set up MongoDB client with connection pooling
+
 client = pymongo.MongoClient(MongoDB, maxPoolSize=50, waitQueueTimeoutMS=2500)
 db = client.Telegram
 assignment_collection = db.Files
 users_collection = db.Users
 
-# Conversation states
+
 ASK_TITLE, ASK_DOCUMENT = range(2)
 
-# Timetable data
+
 timetable = {
     "Monday": [
         "9:00 AM - 9:55 AM: Web Programming",
@@ -207,8 +206,6 @@ async def save_assignment(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'timestamp': datetime.now(timezone.utc) 
             })
             await update.message.reply_text(f"Assignment '{title}' added successfully.")
-            
-            # Notify all users about the new assignment
             users = users_collection.find()
             for user in users:
                 try:
@@ -248,7 +245,6 @@ def handle_exception(loop, context):
 def main():
     logger.info("Bot is starting")
     
-    # Setup the shutdown handler
     if platform.system() != 'Windows':
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -261,20 +257,18 @@ def main():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
     
-    # Set the exception handler
     loop.set_exception_handler(handle_exception)
 
     keep_alive()
     
     app = Application.builder().token(Token).build()
 
-    # Add handlers
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("works", assignments))
     app.add_handler(CommandHandler("timetable", timetable_command))
     
-    # Conversation handler for adding assignments
     add_assignment_conv = ConversationHandler(
         entry_points=[CommandHandler('addassignment', addassignment_start)],
         states={
