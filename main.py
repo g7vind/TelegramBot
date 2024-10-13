@@ -98,7 +98,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "user_id": user_id,
                 "first_name": first_name,
                 "last_name": last_name,
-                "username": username
+                "username": username,
+                "block":0
             })
         full_name = f"{first_name} {last_name}".strip()
         welcome_message = f"Welcome to the Assignment Bot, {full_name}! Use /help to see available commands."
@@ -109,6 +110,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        user = update.message.from_user
+        user_id = user.id
+        first_name = user.first_name
+        last_name = user.last_name or ''
+        username = user.username or ''
+
+        if not users_collection.find_one({"user_id": user_id}):
+            users_collection.insert_one({
+                "user_id": user_id,
+                "first_name": first_name,
+                "last_name": last_name,
+                "username": username,
+                "block":0
+            })
         await update.message.reply_text(
             "/start                     - To start the bot\n"
             "/help                      - To get help\n"
@@ -123,6 +138,17 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def assignments(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user = update.effective_user
+        if not users_collection.find_one({"user_id": user.id}):
+            users_collection.insert_one({
+                "user_id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name or '',
+                "username": user.username or '',
+                "block":0
+        })
+        if users_collection.find_one({"user_id": user.id})['block'] == 1:
+            await update.message.reply_text("Some issues with your account. Please contact the admin @levi_4225")
+            return
         user_info = f"User ID: {user.id}, Username: {user.username}, Name: {user.full_name}"
         logger.info(f"Assignment request from: {user_info}")
         assignments = assignment_collection.find().sort('timestamp', -1)
@@ -144,6 +170,9 @@ async def send_assignment_file(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     user = query.from_user
+    if users_collection.find_one({"user_id": user.id})['block'] == 1:
+            await update.message.reply_text("Some issues with your account. Please contact the admin @levi_4225")
+            return
     user_info = f"User ID: {user.id}, Username: {user.username}, Name: {user.full_name}"
     assignment_id = query.data
     try:
