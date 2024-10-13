@@ -150,6 +150,7 @@ async def assignments(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"Assignment request from: {user_info}")
         if users_collection.find_one({"user_id": user.id})['block'] == 1:
             await update.message.reply_text("Some issues with your account. Please contact the admin @levi_4225")
+            logger.info(f"Blocked user tried to access assignments: {user_info}")
             return
         assignments = assignment_collection.find().sort('timestamp', -1)
         
