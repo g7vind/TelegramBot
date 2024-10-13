@@ -146,11 +146,11 @@ async def assignments(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "username": user.username or '',
                 "block":0
         })
+        user_info = f"User ID: {user.id}, Username: {user.username}, Name: {user.full_name}"
+        logger.info(f"Assignment request from: {user_info}")
         if users_collection.find_one({"user_id": user.id})['block'] == 1:
             await update.message.reply_text("Some issues with your account. Please contact the admin @levi_4225")
             return
-        user_info = f"User ID: {user.id}, Username: {user.username}, Name: {user.full_name}"
-        logger.info(f"Assignment request from: {user_info}")
         assignments = assignment_collection.find().sort('timestamp', -1)
         
         if assignment_collection.count_documents({}) > 0:
@@ -170,13 +170,14 @@ async def send_assignment_file(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     user = query.from_user
-    if users_collection.find_one({"user_id": user.id})['block'] == 1:
-            await update.message.reply_text("Some issues with your account. Please contact the admin @levi_4225")
-            return
     user_info = f"User ID: {user.id}, Username: {user.username}, Name: {user.full_name}"
     assignment_id = query.data
     try:
         assignment = assignment_collection.find_one({"_id": ObjectId(assignment_id)})
+        if users_collection.find_one({"user_id": user.id})['block'] == 1:
+            logger.info(f"File not sent to {user_info} - Account blocked")
+            await update.message.reply_text("Some issues with your account. Please contact the admin @levi_4225")
+            return
         if assignment:
             file_id = assignment['file_url']
             file_title = assignment['title']
